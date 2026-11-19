@@ -2,7 +2,7 @@
 // Uso: swift tools/airdrop-foto.swift
 import AppKit
 
-let archivo = URL(fileURLWithPath: FileManager.default.currentDirectoryPath + "/ian.png").absoluteURL
+let archivo = URL(fileURLWithPath: FileManager.default.currentDirectoryPath + "/ian-piezas.png").absoluteURL
 class Delegado: NSObject, NSSharingServiceDelegate, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ n: Notification) {
     guard let s = NSSharingService(named: .sendViaAirDrop), s.canPerform(withItems: [archivo]) else {
