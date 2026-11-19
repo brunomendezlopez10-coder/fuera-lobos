@@ -8,35 +8,99 @@ const TAU = Math.PI * 2;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const MAX_OVEJAS = 8;
 
-// ---------- Ian, el granjero (foto real recortada) ----------
+// ---------- Ian, el granjero (foto real recortada en piezas) ----------
 // La foto NO se sube a internet: se elige una vez en el iPhone y se guarda solo en el teléfono.
-const ian = new Image();
-let ianOK = false;
-const IAN_ALTO = 115;          // altura de Ian en el juego
-const IAN_MANO = { x: 65 / 339, y: 420 / 700 }; // dónde tiene la pistola en la foto
-ian.onload = () => {
+// La imagen trae 4 piezas (cuerpo, brazo con pistola y dos piernas) sobre fondo rosa,
+// que aquí se vuelve transparente.
+const PIEZAS = { escala: 0.55, alto: 1400, hoja: [717, 584], piezas: {
+  cuerpo: { sx: 10, sy: 10, sw: 339, sh: 564, ox: 53, oy: 7 },
+  brazo: { sx: 359, sy: 10, sw: 101, sh: 519, ox: 7, oy: 335 },
+  piernaI: { sx: 470, sy: 10, sw: 146, sh: 257, ox: 19, oy: 925 },
+  piernaD: { sx: 626, sy: 10, sw: 81, sh: 257, ox: 275, oy: 925 } } };
+const IAN_ALTO = 180;                 // altura de Ian en pantalla
+const IAN_CX = 280;                   // centro horizontal (en píxeles de la foto original)
+const HOMBRO = { x: 100, y: 420 }, CANON = { x: 162, y: 1255 };
+const CADERA_I = { x: 150, y: 960 }, CADERA_D = { x: 345, y: 960 };
+const BRAZO_REPOSO = Math.atan2(CANON.y - HOMBRO.y, CANON.x - HOMBRO.x);
+let ianOK = false, piezasIan = null;
+
+function prepararIan(img) {
+  const [hw, hh] = PIEZAS.hoja, f = img.naturalWidth / hw;
+  if (Math.abs(img.naturalHeight / f - hh) > 4) return false; // no es la imagen de Ian
+  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), px = d.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i], gr = px[i + 1], b = px[i + 2];
+    const rosa = Math.min(r, b) - gr;                      // cuánto se parece al fondo rosa
+    let al = 1 - Math.max(0, Math.min(1, (rosa - 45) / 120));
+    al *= px[i + 3] / 255;
+    if (al > 0.02 && al < 1) {                             // quitar el tinte rosa de los bordes
+      const k = 1 - al;
+      px[i] = Math.max(0, Math.min(255, (r - 255 * k) / al));
+      px[i + 1] = Math.max(0, Math.min(255, gr / al));
+      px[i + 2] = Math.max(0, Math.min(255, (b - 255 * k) / al));
+    }
+    px[i + 3] = Math.round(al * 255);
+  }
+  g.putImageData(d, 0, 0);
+  piezasIan = {};
+  for (const [n, p] of Object.entries(PIEZAS.piezas)) {
+    const pc = document.createElement('canvas');
+    pc.width = Math.round(p.sw * f); pc.height = Math.round(p.sh * f);
+    pc.getContext('2d').drawImage(c, p.sx * f, p.sy * f, p.sw * f, p.sh * f, 0, 0, pc.width, pc.height);
+    piezasIan[n] = { c: pc, x: p.ox, y: p.oy, w: p.sw / PIEZAS.escala, h: p.sh / PIEZAS.escala };
+  }
   ianOK = true;
-  $('retratoImg').src = ian.src; $('retratoImg').style.display = '';
+  pintarRetrato();
   $('btnFoto').textContent = '📷 Cambiar foto de Ian';
-};
-ian.onerror = () => { ianOK = false; $('retratoImg').style.display = 'none'; };
-ian.src = localStorage.getItem('fl_ian') || 'ian.png'; // ian.png solo existe en el Mac
+  return true;
+}
+
+function cargarIan(src, guardar) {
+  const img = new Image();
+  img.onload = () => {
+    if (!prepararIan(img)) {
+      if (guardar) alert('Esa no es la imagen de Ian. Elige la que te llegó por AirDrop (la de las piezas con fondo rosa).');
+      return;
+    }
+    if (guardar) {
+      try { localStorage.setItem('fl_ian2', src); } catch (err) { alert('No se pudo guardar la foto.'); }
+    }
+  };
+  img.src = src;
+}
+localStorage.removeItem('fl_ian'); // versión antigua
+cargarIan(localStorage.getItem('fl_ian2') || 'ian-piezas.png', false); // ian-piezas.png solo existe en el Mac
 
 $('btnFoto').onclick = () => $('eligeFoto').click();
 $('eligeFoto').onchange = e => {
   const archivo = e.target.files[0]; if (!archivo) return;
-  const img = new Image();
-  img.onload = () => {
-    const esc = Math.min(1, 700 / img.naturalHeight), c = document.createElement('canvas');
-    c.width = Math.round(img.naturalWidth * esc); c.height = Math.round(img.naturalHeight * esc);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const datos = c.toDataURL('image/png');
-    try { localStorage.setItem('fl_ian', datos); } catch (err) { alert('No se pudo guardar la foto.'); }
-    ian.src = datos; URL.revokeObjectURL(img.src);
+  const lector = new FileReader();
+  lector.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      cargarIan(c.toDataURL('image/png'), true);
+    };
+    img.src = lector.result;
   };
-  img.src = URL.createObjectURL(archivo);
+  lector.readAsDataURL(archivo);
   e.target.value = '';
 };
+
+function pintarRetrato() {
+  const c = $('retrato'), g = c.getContext('2d');
+  const k = c.height / PIEZAS.alto * 0.98;
+  g.clearRect(0, 0, c.width, c.height);
+  g.save(); g.translate(c.width / 2, c.height); g.scale(k, k);
+  for (const n of ['piernaI', 'piernaD', 'cuerpo', 'brazo']) {
+    const p = piezasIan[n]; g.drawImage(p.c, p.x - IAN_CX, p.y - PIEZAS.alto, p.w, p.h);
+  }
+  g.restore();
+  c.style.display = '';
+}
 
 // ---------- Pantalla ----------
 let W = 0, H = 0, S = 1, DPR = 1;
@@ -148,7 +212,6 @@ let estado = 'menu'; // menu | jugando | pausa | acabando | fin
 let granjera = null, ovejas = [], lobos = [], balas = [], parts = [], premios = [];
 let puntos = 0, oleada = 1, porSalir = 0, tSalida = 0, oleadaHecha = false, tSiguiente = 0;
 let superT = 0, temblor = 0, tFin = 0, cartel = null;
-let arrastrando = false;
 let record = +(localStorage.getItem('fl_record') || 0);
 
 function puntoEnCorral(f = 0.7) {
@@ -165,7 +228,7 @@ function nuevaOveja() {
 }
 
 function mundoNuevo() {
-  granjera = { x: W / 2, y: Math.min(H - 70 * S, corral.y + corral.r + 90 * S), tx: 0, ty: 0, enfriar: 0, ang: -Math.PI / 2, retroceso: 0, paso: 0, giro: 1 };
+  granjera = { x: W / 2, y: Math.min(H - 30 * S, corral.y + corral.r + IAN_ALTO * S + 10 * S), tx: 0, ty: 0, enfriar: 0, ang: -Math.PI / 2, retroceso: 0, paso: 0, giro: 1, brazo: 0, brazoObj: 0, apuntaT: 0, salto: 0, anda: false };
   granjera.tx = granjera.x; granjera.ty = granjera.y;
   ovejas = []; for (let i = 0; i < MAX_OVEJAS; i++) ovejas.push(nuevaOveja());
   lobos = []; balas = []; parts = []; premios = [];
@@ -177,14 +240,16 @@ function empezarPartida() {
   mundoNuevo();
   estado = 'jugando';
   mostrar('hud'); ocultar('menu'); ocultar('fin'); ocultar('pausa');
+  dedoMover = null; dedosDisparo.clear();
   empezarOleada(1);
+  ponerCartel('Oleada 1', 'Un dedo mueve a Ian · otro dedo dispara', 4);
 }
 
 function empezarOleada(n) {
   oleada = n; porSalir = 3 + n * 2; tSalida = 1.6; oleadaHecha = false;
   ponerCartel('Oleada ' + n);
 }
-function ponerCartel(texto, sub = '') { cartel = { texto, sub, t: 2.2 }; }
+function ponerCartel(texto, sub = '', t = 2.2) { cartel = { texto, sub, t, max: t }; }
 
 function aparecerLobo() {
   const grande = oleada >= 3 && Math.random() < Math.min(0.35, 0.07 * oleada);
@@ -194,7 +259,7 @@ function aparecerLobo() {
   else if (lado === 1) { x = W + m; y = Math.random() * H; }
   else if (lado === 2) { x = Math.random() * W; y = H + m; }
   else { x = -m; y = Math.random() * H; }
-  const vel = Math.min(125, 48 + oleada * 7) * S * rnd(0.9, 1.15) * (grande ? 0.75 : 1);
+  const vel = Math.min(120, 40 + oleada * 7) * S * rnd(0.9, 1.15) * (grande ? 0.75 : 1);
   lobos.push({ x, y, grande, vida: grande ? 3 : 1, vel, estado: 'caza', presa: null, lleva: null, cara: 1, paso: rnd(0, 6), golpe: 0, sx: 0, sy: 0 });
 }
 
@@ -228,47 +293,74 @@ function actualizar(dt) {
   actualizarHud();
 }
 
-function medidasIan() {
-  const h = IAN_ALTO * S, w = ianOK ? h * ian.naturalWidth / ian.naturalHeight : h * 0.48;
-  return { w, h, pies: granjera.y + 28 * S };
+// Convierte un punto de la foto original (ya girado) a posición en pantalla
+function escalaIan() { return IAN_ALTO * S / PIEZAS.alto; }
+function aPantalla(px, py) {
+  const g = granjera, k = escalaIan();
+  return { x: g.x + g.giro * k * (px - IAN_CX), y: g.y - g.salto + k * (py - PIEZAS.alto) };
 }
-function puntoMano() {
-  const g = granjera, m = medidasIan();
-  return { x: g.x + (IAN_MANO.x - 0.5) * m.w * g.giro, y: m.pies - (1 - IAN_MANO.y) * m.h };
+function girar(px, py, cx, cy, a) {
+  const c = Math.cos(a), s = Math.sin(a), dx = px - cx, dy = py - cy;
+  return { x: cx + dx * c - dy * s, y: cy + dx * s + dy * c };
+}
+function bocaCanon() {
+  if (!ianOK) return { x: granjera.x, y: granjera.y - 60 * S };
+  const p = girar(CANON.x, CANON.y, HOMBRO.x, HOMBRO.y, granjera.brazo);
+  return aPantalla(p.x, p.y);
+}
+function apuntarA(tx, ty) {
+  const g = granjera, k = escalaIan();
+  if (Math.abs(tx - g.x) > 8 * S) g.giro = tx > g.x ? -1 : 1; // Ian se gira hacia donde dispara
+  const px = (tx - g.x) / (g.giro * k) + IAN_CX, py = (ty - g.y + g.salto) / k + PIEZAS.alto;
+  let r = Math.atan2(py - HOMBRO.y, px - HOMBRO.x) - BRAZO_REPOSO;
+  while (r > Math.PI) r -= TAU; while (r < -Math.PI) r += TAU;
+  g.brazoObj = Math.max(-0.35, Math.min(2.7, r));
+  g.brazo = g.brazoObj; g.apuntaT = 0.8;
+}
+
+// Dedos: el primero mueve a Ian; cualquier otro dedo dispara hacia donde toca
+let dedoMover = null;
+const dedosDisparo = new Map();
+let ultimoDisparo = 0;
+
+function disparar(tx, ty, toque) {
+  const g = granjera, ahora = performance.now() / 1000;
+  if (toque ? ahora - ultimoDisparo < 0.12 : g.enfriar > 0) return;
+  // ayuda: si tocas cerca de un lobo, apunta a él
+  let mejor = null, md = 60 * S;
+  for (const l of lobos) { const d = Math.hypot(l.x - tx, l.y - ty); if (d < md) { md = d; mejor = l; } }
+  if (mejor) { tx = mejor.x; ty = mejor.y - 4 * S; }
+  apuntarA(tx, ty);
+  const boca = bocaCanon(), ang = Math.atan2(ty - boca.y, tx - boca.x);
+  g.ang = ang; g.enfriar = superT > 0 ? 0.1 : 0.28; ultimoDisparo = ahora;
+  const angs = superT > 0 ? [-0.16, 0, 0.16] : [0];
+  for (const da of angs) {
+    const a = ang + da, v = 760 * S;
+    balas.push({ x: boca.x, y: boca.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vida: 1.2 });
+  }
+  g.retroceso = 1;
+  parts.push({ tipo: 'fogonazo', x: boca.x, y: boca.y, vida: .06, max: .06, ang });
+  sfx.disparo();
 }
 
 function actualizarGranjera(dt) {
   const g = granjera;
-  const dx = g.tx - g.x, dy = g.ty - g.y, d = Math.hypot(dx, dy), vel = 300 * S;
-  if (d > 2) { const p = Math.min(d, vel * dt); g.x += dx / d * p; g.y += dy / d * p; g.paso += dt * 14; }
-  g.x = Math.max(22 * S, Math.min(W - 22 * S, g.x));
-  g.y = Math.max(115 * S, Math.min(H - 40 * S, g.y));
+  const dx = g.tx - g.x, dy = g.ty - g.y, d = Math.hypot(dx, dy), vel = 320 * S;
+  g.anda = d > 3;
+  if (g.anda) { const p = Math.min(d, vel * dt); g.x += dx / d * p; g.y += dy / d * p; g.paso += dt * 13; }
+  else g.paso += (Math.round(g.paso / Math.PI) * Math.PI - g.paso) * Math.min(1, dt * 10); // vuelve a estar de pie
+  g.x = Math.max(30 * S, Math.min(W - 30 * S, g.x));
+  g.y = Math.max(IAN_ALTO * S + 50 * S, Math.min(H - 10 * S, g.y));
+  g.salto = Math.abs(Math.sin(g.paso)) * 5 * S * (g.anda ? 1 : 0);
   g.retroceso = Math.max(0, g.retroceso - dt * 8);
   g.enfriar -= dt; superT = Math.max(0, superT - dt);
+  g.apuntaT -= dt;
+  if (g.apuntaT <= 0) { // sin disparar: el brazo vuelve abajo y se balancea al andar
+    const obj = g.anda ? Math.sin(g.paso) * 0.18 : 0;
+    g.brazo += (obj - g.brazo) * Math.min(1, dt * 8);
+  }
   if (estado !== 'jugando') return;
-  // apunta al lobo más peligroso (los que llevan oveja cuentan como más cerca)
-  let mejor = null, md = Infinity;
-  for (const l of lobos) {
-    if (l.x < -15 || l.x > W + 15 || l.y < -15 || l.y > H + 15) continue;
-    const dd = Math.hypot(l.x - g.x, l.y - g.y) * (l.lleva ? 0.55 : 1);
-    if (dd < md) { md = dd; mejor = l; }
-  }
-  if (!mejor) return;
-  if (Math.abs(mejor.x - g.x) > 6 * S) g.giro = mejor.x > g.x ? -1 : 1; // Ian se gira hacia el lobo
-  const mano = puntoMano();
-  g.ang = Math.atan2(mejor.y - mano.y, mejor.x - mano.x);
-  if (g.enfriar <= 0) {
-    g.enfriar = superT > 0 ? 0.11 : 0.3;
-    const bx = mano.x + Math.cos(g.ang) * 10 * S, by = mano.y + Math.sin(g.ang) * 10 * S;
-    const angs = superT > 0 ? [-0.16, 0, 0.16] : [0];
-    for (const da of angs) {
-      const a = g.ang + da, v = 720 * S;
-      balas.push({ x: bx, y: by, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vida: 1.2 });
-    }
-    g.retroceso = 1;
-    parts.push({ tipo: 'fogonazo', x: bx, y: by, vida: .06, max: .06, ang: g.ang });
-    sfx.disparo();
-  }
+  for (const p of dedosDisparo.values()) disparar(p.x, p.y, false); // dedo apoyado: sigue disparando
 }
 
 function actualizarOvejas(dt) {
@@ -349,7 +441,7 @@ function actualizarBalas(dt) {
     let fuera = b.vida <= 0 || b.x < -20 || b.x > W + 20 || b.y < -20 || b.y > H + 20;
     if (!fuera) {
       for (const l of lobos) {
-        const r = (l.grande ? 26 : 19) * S;
+        const r = (l.grande ? 30 : 23) * S;
         if (Math.hypot(l.x - b.x, l.y - 4 * S - b.y) < r) { golpear(l); fuera = true; break; }
       }
     }
@@ -380,9 +472,9 @@ function golpear(l) {
 function actualizarPremios(dt) {
   for (let i = premios.length - 1; i >= 0; i--) {
     const p = premios[i]; p.vida -= dt; p.rot += dt * 2;
-    if (Math.hypot(p.x - granjera.x, p.y - granjera.y) < 38 * S) {
+    if (Math.hypot(p.x - granjera.x, p.y - (granjera.y - IAN_ALTO * S * 0.4)) < 55 * S) {
       premios.splice(i, 1); superT = 7; sfx.estrella(); chispas(p.x, p.y, 12, '#ffe14d');
-      texto(granjera.x, granjera.y - 70 * S, '¡SUPERDISPARO!', '#ffe14d', 26);
+      texto(granjera.x, granjera.y - IAN_ALTO * S - 20 * S, '¡SUPERDISPARO!', '#ffe14d', 26);
     } else if (p.vida <= 0) premios.splice(i, 1);
   }
 }
@@ -450,7 +542,7 @@ function dibujar() {
     ctx.fillText('⭐ Superdisparo ' + Math.ceil(superT), W / 2, H - 24 * S);
   }
   if (cartel) {
-    const a = Math.min(1, cartel.t * 2, (2.2 - cartel.t) * 4);
+    const a = Math.min(1, cartel.t * 2, (cartel.max - cartel.t) * 4);
     ctx.globalAlpha = Math.max(0, a); ctx.textAlign = 'center';
     textoBorde(cartel.texto, W / 2, H * 0.2, 38 * S, '#ffe35a', '#7a3d00');
     if (cartel.sub) textoBorde(cartel.sub, W / 2, H * 0.2 + 34 * S, 18 * S, '#fff', '#2d4d1a');
@@ -555,26 +647,33 @@ function dibujarCara(x, y, r) {
 
 function dibujarGranjera() {
   if (ianOK) return dibujarIan();
-  dibujarMunyeco();
+  ctx.save(); ctx.translate(0, -30 * S); dibujarMunyeco(); ctx.restore();
 }
 
 function dibujarIan() {
-  const g = granjera, m = medidasIan();
-  const mov = Math.hypot(g.tx - g.x, g.ty - g.y) > 2;
-  const salto = mov ? Math.abs(Math.sin(g.paso)) * 4 * S : 0;
-  const balanceo = mov ? Math.sin(g.paso) * 0.06 : 0;
-  elipse(ctx, g.x, m.pies, m.w * 0.55, 7 * S, 'rgba(0,0,0,.25)');
+  const g = granjera, k = escalaIan(), h = IAN_ALTO * S, A = PIEZAS.alto;
+  elipse(ctx, g.x, g.y, 34 * S, 8 * S, 'rgba(0,0,0,.25)');
   if (superT > 0) {
-    ctx.globalAlpha = .3 + .2 * Math.sin(performance.now() / 80);
-    elipse(ctx, g.x, m.pies - m.h / 2, m.w * 0.8, m.h * 0.6, '#ffe14d'); ctx.globalAlpha = 1;
+    ctx.globalAlpha = .28 + .18 * Math.sin(performance.now() / 80);
+    elipse(ctx, g.x, g.y - h / 2, h * 0.38, h * 0.6, '#ffe14d'); ctx.globalAlpha = 1;
   }
+  const pieza = (n, rot, piv) => {
+    const p = piezasIan[n];
+    ctx.save();
+    if (rot) { ctx.translate(piv.x - IAN_CX, piv.y - A); ctx.rotate(rot); ctx.translate(-(piv.x - IAN_CX), -(piv.y - A)); }
+    ctx.drawImage(p.c, p.x - IAN_CX, p.y - A, p.w, p.h);
+    ctx.restore();
+  };
+  const piernas = g.anda ? Math.sin(g.paso) * 0.3 : 0;
   ctx.save();
-  ctx.translate(g.x, m.pies - salto);
-  ctx.rotate(balanceo);
-  ctx.scale(g.giro * (1 - g.retroceso * 0.03), 1 + g.retroceso * 0.03);
-  ctx.drawImage(ian, -m.w / 2, -m.h, m.w, m.h);
+  ctx.translate(g.x, g.y - g.salto);
+  ctx.scale(g.giro * k, k);
+  pieza('piernaI', piernas, CADERA_I);
+  pieza('piernaD', -piernas, CADERA_D);
+  pieza('cuerpo', 0);
+  pieza('brazo', g.brazo - g.retroceso * 0.12, HOMBRO);
   ctx.restore();
-  if (superT > 0) estrella(ctx, g.x, m.pies - m.h - 12 * S - salto, 9 * S, performance.now() / 300, '#ffe14d');
+  if (superT > 0) estrella(ctx, g.x, g.y - h - 14 * S - g.salto, 10 * S, performance.now() / 300, '#ffe14d');
 }
 
 function dibujarMunyeco() {
@@ -678,11 +777,19 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pausa
 
 function moverA(e) {
   granjera.tx = e.clientX;
-  granjera.ty = e.clientY - 70 * S; // la granjera va un poco por encima del dedo para que se vea
+  granjera.ty = e.clientY - 40 * S; // Ian va un poco por encima del dedo para que se vea
 }
-cv.addEventListener('pointerdown', e => { if (estado !== 'jugando') return; arrastrando = true; moverA(e); });
-cv.addEventListener('pointermove', e => { if (arrastrando && estado === 'jugando') moverA(e); });
-const soltar = () => { arrastrando = false; };
+cv.addEventListener('pointerdown', e => {
+  if (estado !== 'jugando') return;
+  if (dedoMover === null) { dedoMover = e.pointerId; moverA(e); }
+  else { dedosDisparo.set(e.pointerId, { x: e.clientX, y: e.clientY }); disparar(e.clientX, e.clientY, true); }
+});
+cv.addEventListener('pointermove', e => {
+  if (estado !== 'jugando') return;
+  if (e.pointerId === dedoMover) moverA(e);
+  else if (dedosDisparo.has(e.pointerId)) dedosDisparo.set(e.pointerId, { x: e.clientX, y: e.clientY });
+});
+const soltar = e => { if (e.pointerId === dedoMover) dedoMover = null; dedosDisparo.delete(e.pointerId); };
 cv.addEventListener('pointerup', soltar); cv.addEventListener('pointercancel', soltar);
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());

@@ -1,6 +1,6 @@
 // Guarda el juego en el iPhone para que funcione sin conexión.
 // Sube el número de versión cuando cambies algún archivo.
-const CACHE = 'fuera-lobos-v1';
+const CACHE = 'fuera-lobos-v2';
 const FILES = ['./', 'index.html', 'style.css', 'game.js', 'manifest.webmanifest',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

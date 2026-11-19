@@ -34,7 +34,8 @@ f.setValue(CIImage(color: .clear).cropped(to: img.extent), forKey: kCIInputBackg
 f.setValue(mascara, forKey: kCIInputMaskImageKey)
 var res = f.outputImage!.cropped(to: caja)
 res = res.transformed(by: CGAffineTransform(translationX: -caja.minX, y: -caja.minY))
-let escala = min(1, 700 / caja.height)
+let maxAlto = CommandLine.arguments.count > 3 ? CGFloat(Double(CommandLine.arguments[3])!) : 700
+let escala = min(1, maxAlto / caja.height)
 res = res.transformed(by: CGAffineTransform(scaleX: escala, y: escala))
 let ctx = CIContext()
 try ctx.writePNGRepresentation(of: res, to: salida, format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)

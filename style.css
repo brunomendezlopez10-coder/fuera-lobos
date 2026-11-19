@@ -31,7 +31,7 @@ canvas#juego { position: fixed; inset: 0; display: block; touch-action: none; }
 
 .pantalla .sub { font-size: 20px; font-weight: 800; margin-top: -10px; }
 .retrato { margin: 8px 0 6px; }
-.retrato img { height: 24vh; max-height: 220px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.4)); }
+.retrato canvas { height: 26vh; max-height: 240px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.4)); }
 
 button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
 button.grande {
