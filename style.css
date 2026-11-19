@@ -1,0 +1,45 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #3f8f3a;
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+canvas#juego { position: fixed; inset: 0; display: block; touch-action: none; }
+.oculto { display: none !important; }
+
+#hud {
+  position: fixed; left: 0; right: 0; top: 0; display: flex; gap: 6px; justify-content: center; align-items: center;
+  padding: calc(env(safe-area-inset-top) + 8px) 8px 0; pointer-events: none;
+}
+.caja {
+  background: rgba(255, 255, 255, .88); color: #3b2a14; font-weight: 800; font-size: 17px;
+  border-radius: 14px; padding: 6px 12px; box-shadow: 0 2px 0 rgba(0,0,0,.2);
+}
+#btnPausa { pointer-events: auto; border: 0; font-family: inherit; touch-action: manipulation; }
+
+.pantalla {
+  position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 6px; padding: calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px);
+  background: rgba(30, 60, 25, .55); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.35);
+}
+.pantalla h1 { font-size: 44px; margin: 0 0 8px; color: #ffe35a; text-shadow: 0 3px 0 #8a4b00, 0 6px 12px rgba(0,0,0,.4); }
+.pantalla h2 { font-size: 30px; margin: 0 0 10px; color: #ffe35a; text-shadow: 0 3px 0 #8a4b00; }
+.pantalla p { font-size: 18px; margin: 4px 0; line-height: 1.35; }
+.pantalla .puntos { font-size: 28px; font-weight: 800; }
+.pantalla .record { font-size: 18px; color: #ffe35a; font-weight: 700; }
+
+.pantalla .sub { font-size: 20px; font-weight: 800; margin-top: -10px; }
+.retrato { margin: 8px 0 6px; }
+.retrato img { height: 24vh; max-height: 220px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.4)); }
+
+button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
+button.grande {
+  margin-top: 14px; font-size: 26px; font-weight: 800; color: #3b2a14; background: #ffd23a;
+  border: 0; border-radius: 22px; padding: 14px 40px; box-shadow: 0 5px 0 #b07c00;
+}
+button.grande:active { transform: translateY(3px); box-shadow: 0 2px 0 #b07c00; }
+button.pequeno {
+  margin-top: 10px; font-size: 17px; font-weight: 700; color: #fff; background: rgba(255,255,255,.18);
+  border: 2px solid rgba(255,255,255,.6); border-radius: 16px; padding: 8px 20px;
+}

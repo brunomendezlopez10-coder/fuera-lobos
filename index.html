@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>¡Fuera, lobos!</title>
+  <meta name="theme-color" content="#3f8f3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fuera lobos">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="juego"></canvas>
+
+  <div id="hud" class="oculto">
+    <div class="caja" id="hudPuntos">0</div>
+    <div class="caja" id="hudOvejas">🐑 8</div>
+    <div class="caja" id="hudOleada">Oleada 1</div>
+    <button class="caja" id="btnPausa" aria-label="Pausa">⏸</button>
+  </div>
+
+  <div id="menu" class="pantalla">
+    <h1>¡Fuera, lobos!</h1>
+    <p class="sub">con Ian, el granjero</p>
+    <div class="retrato"><img id="retratoImg" alt="Ian" style="display:none"></div>
+    <button class="pequeno" id="btnFoto">📷 Poner la foto de Ian</button>
+    <input type="file" id="eligeFoto" accept="image/*" hidden>
+    <p>Los lobos quieren llevarse las ovejas de Ian.</p>
+    <p><b>Arrastra el dedo</b> para mover a Ian.<br>Él dispara solo al lobo más cercano.</p>
+    <p>⭐ Coge las estrellas: ¡superdisparo!</p>
+    <button class="grande" id="btnJugar">¡A jugar!</button>
+    <p class="record" id="menuRecord"></p>
+    <button class="pequeno" id="btnSonido"></button>
+  </div>
+
+  <div id="pausa" class="pantalla oculto">
+    <h2>Pausa</h2>
+    <button class="grande" id="btnSeguir">Seguir</button>
+    <button class="pequeno" id="btnSalir">Salir al menú</button>
+  </div>
+
+  <div id="fin" class="pantalla oculto">
+    <h2>¡Los lobos se llevaron todas las ovejas!</h2>
+    <p class="puntos" id="finPuntos"></p>
+    <p class="record" id="finRecord"></p>
+    <button class="grande" id="btnOtra">Jugar otra vez</button>
+    <button class="pequeno" id="btnMenu">Menú</button>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
